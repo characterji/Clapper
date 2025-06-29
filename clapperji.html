@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clapper App - Final Working Version</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary-color: #4C2A85; --secondary-color: #ff9800; --success-color: #1DB954; --danger-color: #E91E63; }
+        body { background-color: #f0f2f5; font-family: 'Poppins', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .mobile-container { width: 100%; max-width: 400px; height: 850px; background-color: var(--primary-color); border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        .app-body { flex-grow: 1; overflow-y: auto; padding: 1.2rem; padding-bottom: 100px; }
+        .app-body::-webkit-scrollbar { width: 0px; }
+        .app-header { display: flex; justify-content: space-between; align-items: center; color: white; margin-bottom: 1rem; }
+        .profile-info { display: flex; align-items: center; gap: 12px; }
+        .profile-icon { background-color: var(--secondary-color); color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.4rem; font-weight: bold; flex-shrink: 0;}
+        .app-header h5 { margin: 0; font-weight: 600; font-size: 1.1rem; }
+        #daily-reward-btn { font-size: 1.8rem; color: #FFC107; cursor: pointer; animation: pulse 1.5s infinite; display: none; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        .banner-carousel .carousel-item img { border-radius: 20px; height: 160px; width: 100%; object-fit: cover; }
+        
+        .quiz-list {
+            margin-top: 1.5rem;
+        }
+        
+        .quiz-card {
+            background-color: white;
+            border-radius: 24px;
+            padding: 1rem 1rem 1rem 120px;
+            margin-bottom: 2.8rem;
+            position: relative;
+            min-height: 110px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 100%;
+            overflow: visible;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+        }
+        .quiz-card.ended { opacity: 0.85; }
+        .quiz-card-image { position: absolute; left: -15px; top: 50%; transform: translateY(-50%); width: 120px; height: auto; z-index: 2; border-radius: 18px; }
+        .quiz-card-content { display: flex; flex-direction: column; justify-content: center; height: 100%; gap: 6px; }
+        .quiz-card-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #888; }
+        .quiz-timer, .prize-pool { display: flex; align-items: center; gap: 5px; font-weight: 500;}
+        .quiz-timer .fa-clock { color: var(--danger-color); }
+        .prize-pool .rupee-symbol { color: #FFC107; font-weight: bold; }
+        .quiz-card-content h6 { font-weight: 600; color: #222; margin: 0; font-size: 1.05rem; line-height: 1.3; }
+        
+        .slots-progress-container { margin-top: 4px; }
+        .slots-progress-bar { background-color: #e9ecef; border-radius: 50px; height: 6px; overflow: hidden; margin-bottom: 4px; }
+        .slots-progress-bar-fill { height: 100%; border-radius: 50px; transition: width 0.5s; }
+        .slots-progress-bar-fill.green { background-color: var(--success-color); }
+        .slots-progress-bar-fill.yellow { background-color: var(--secondary-color); }
+        .slots-progress-bar-fill.red { background-color: #dc3545; }
+        
+        .slots-info-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #888; font-weight: 500; }
+        
+        /* --- BUTTON POSITION ADJUSTMENT --- */
+        .entry-button {
+            position: absolute;
+            bottom: -15px;
+            left: 60%; /* MOVED from 50% to 60% for right-side shift */
+            transform: translateX(-50%);
+            width: 55%;
+            color: white !important;
+            text-decoration: none !important;
+            border: none;
+            border-radius: 50px;
+            padding: 7px 12px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            z-index: 3;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .entry-button:hover { transform: translateX(-50%) scale(1.05); }
+        /* --- END OF BUTTON ADJUSTMENT --- */
+
+        .entry-button.entry { background-color: var(--success-color); box-shadow: 0 4px 12px #1DB95450; }
+        .entry-button.play-now { background-color: #0d6efd; box-shadow: 0 4px 12px #0d6efd50; }
+        .entry-button.full { background-color: #6c757d; cursor: not-allowed; box-shadow: none; }
+        .entry-button.claim { background-color: var(--secondary-color); box-shadow: 0 4px 12px #ff980050; }
+        .entry-button.claimed { background-color: #17a2b8; cursor: not-allowed; box-shadow: none; }
+
+        #leaderboard-list { display: flex; flex-direction: column; gap: 12px; }
+        .leaderboard-entry { display: flex; align-items: center; background-color: rgba(255, 255, 255, 0.1); padding: 10px 15px; border-radius: 15px; gap: 15px; color: white; }
+        .leaderboard-entry .rank { font-weight: 700; font-size: 1rem; color: #ddd; width: 25px; text-align: center; }
+        .leaderboard-entry .rank.gold { color: #FFD700; } .leaderboard-entry .rank.silver { color: #C0C0C0; } .leaderboard-entry .rank.bronze { color: #CD7F32; }
+        .leaderboard-entry .leader-icon { width: 45px; height: 45px; border-radius: 50%; background-color: var(--secondary-color); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.4rem; flex-shrink: 0; }
+        .leaderboard-entry .leader-info { flex-grow: 1; }
+        .leaderboard-entry .leader-name { font-weight: 600; font-size: 1rem; margin: 0; }
+        .leaderboard-entry .leader-prize { font-size: 0.9rem; opacity: 0.8; }
+        .leaderboard-entry .leader-prize i { color: #FFC107; font-size: 0.8rem; }
+
+        .bottom-nav { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 380px; background-color: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 50px; z-index: 10; display: flex; justify-content: space-around; padding: 8px 0; }
+        .nav-item { color: #a996d4; font-size: 1.1rem; cursor: pointer; transition: color 0.3s, transform 0.3s; display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; text-align: center; }
+        .nav-item i { font-size: 1.4rem; } .nav-item span { font-size: 0.65rem; font-weight: 500; }
+        .nav-item.active { color: white; transform: translateY(-3px); }
+        .nav-item.center-item { transform: translateY(-18px); background-color: var(--secondary-color); color: white; border-radius: 50%; width: 60px; height: 60px; justify-content: center; border: 4px solid var(--primary-color); }
+        .nav-item.center-item.active { background-color: #e68900; }
+        .nav-item.center-item i { font-size: 1.8rem; } .nav-item.center-item span { display: none; }
+        
+        .wallet-card { background: linear-gradient(45deg, #6a35b8, #864ceb); color: white; padding: 25px; border-radius: 20px; text-align: center; margin-bottom: 2rem; }
+        .wallet-card p { margin: 0; font-size: 1rem; opacity: 0.8; }
+        .wallet-card h2 { margin: 5px 0 20px 0; font-size: 2.5rem; font-weight: 700; }
+        .wallet-summary { display: flex; justify-content: space-around; font-size: 0.9rem; }
+        .summary-item { text-align: center; } .summary-item span { display: block; opacity: 0.7; font-size: 0.8rem; }
+        .wallet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .wallet-btn { background: var(--success-color); color: white; border-radius: 10px; padding: 12px 20px; font-weight: 600; text-align: center; cursor: pointer; }
+        .wallet-btn.withdraw { background-color: var(--danger-color); }
+        .transaction-item { display: flex; align-items: center; justify-content: space-between; background-color: rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 15px; margin-bottom: 12px; color: white; }
+        
+        .profile-page-header { text-align: center; color: white; margin-bottom: 2rem; }
+        .profile-page-header .icon { width: 90px; height: 90px; border-radius: 50%; background: var(--secondary-color); display: flex; justify-content: center; align-items: center; font-size: 3rem; font-weight: bold; margin: 0 auto 15px auto; }
+        .profile-page-header h4 { font-weight: 600; margin: 0; }
+        .profile-links { list-style: none; padding: 0; margin-top: 1.5rem; }
+        .profile-links li { background-color: rgba(255,255,255,0.1); margin-bottom: 10px; border-radius: 10px; }
+        .profile-links a { display: flex; align-items: center; padding: 15px; color: white; text-decoration: none; }
+        .profile-links i { width: 30px; text-align: center; margin-right: 15px; font-size: 1.1rem; }
+        .profile-links .value, .profile-links .chevron { margin-left: auto; opacity: 0.7; }
+        
+        .quiz-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--primary-color); z-index: 2000; display: none; flex-direction: column; padding: 20px; color: white; }
+        .quiz-overlay-header { display: flex; justify-content: space-between; align-items: center; }
+        .quiz-overlay-header .timer { font-size: 1.5rem; font-weight: bold; }
+        .quiz-overlay-body { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+        .quiz-question { font-size: 1.5rem; font-weight: 500; margin-bottom: 30px; }
+        .quiz-options { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .quiz-option { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; font-size: 1.1rem; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+        .quiz-option:hover { background: rgba(255,255,255,0.2); }
+        .quiz-option.selected { border-color: var(--secondary-color); }
+        
+        .page-section { display: none; } .page-section.active { display: block; animation: fadeIn 0.5s; } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-box { background-color: #fff; padding: 25px; border-radius: 20px; width: 90%; max-width: 340px; }
+        .modal-input { width: 100%; border: 1px solid #ddd; border-radius: 10px; padding: 12px; font-size: 1rem; margin: 15px 0; }
+        .modal-actions { display: flex; gap: 10px; } .modal-btn { flex-grow: 1; padding: 12px; border: none; border-radius: 50px; font-weight: 600; cursor: pointer; }
+        .modal-btn.primary { background-color: var(--primary-color); color: white; } .modal-btn.secondary { background-color: #eee; color: #333; }
+        .toast-container { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 9999; }
+        .toast-message { padding: 12px 20px; border-radius: 50px; color: white; font-weight: 500; margin-bottom: 10px; }
+        .toast-message.success { background-color: var(--success-color); } .toast-message.error { background-color: var(--danger-color); }
+        .empty-state, .loading-spinner { color: rgba(255,255,255,0.7); text-align: center; padding: 3rem 0; }
+        .page-title { color: white; font-weight: 600; font-size: 1.4rem; text-align: center; margin-bottom: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div id="toast-container"></div>
+    <div id="modal-container" class="modal-overlay"><div class="modal-box" id="modal-content"></div></div>
+    <div class="quiz-overlay" id="quiz-overlay"></div>
+    <div class="mobile-container">
+        <div class="app-body">
+            <header class="app-header">
+                <div class="profile-info"><div class="profile-icon" id="profile-initial">U</div><h5 id="profile-name">Hi User</h5></div>
+                <i id="daily-reward-btn" class="fas fa-gift"></i>
+            </header>
+            <main>
+                <section id="home-page" class="page-section active">
+                    <div id="bannerCarousel" class="carousel slide banner-carousel" data-bs-ride="carousel" data-bs-touch="true">
+                        <div class="carousel-inner" id="banner-inner"></div>
+                    </div>
+                    <div class="quiz-list" id="quiz-list"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div></div>
+                </section>
+                <section id="my-quizzes-page" class="page-section">
+                    <h4 class="page-title">My Quizzes</h4>
+                    <div class="quiz-list" id="my-quizzes-list"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div></div>
+                </section>
+                <section id="leaderboard-page" class="page-section">
+                    <h4 class="page-title">Top Winners</h4>
+                    <div id="leaderboard-list"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div></div>
+                </section>
+                <section id="wallet-page" class="page-section">
+                    <h4 class="page-title">My Wallet</h4>
+                    <div id="wallet-content"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div></div>
+                </section>
+                <section id="profile-page" class="page-section">
+                    <h4 class="page-title">Profile</h4>
+                    <div id="profile-content"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div></div>
+                </section>
+            </main>
+        </div>
+        <footer class="bottom-nav">
+            <div class="nav-item active" data-target="home-page"><i class="fas fa-home"></i><span>Home</span></div>
+            <div class="nav-item" data-target="my-quizzes-page"><i class="fas fa-gamepad"></i><span>My Quizzes</span></div>
+            <div class="nav-item center-item" data-target="leaderboard-page"><i class="fas fa-trophy"></i></div>
+            <div class="nav-item" data-target="wallet-page"><i class="fas fa-wallet"></i><span>Wallet</span></div>
+            <div class="nav-item" data-target="profile-page"><i class="fas fa-user"></i><span>Profile</span></div>
+        </footer>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getDatabase, ref, onValue, set, runTransaction, update, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        const firebaseConfig = {
+  apiKey: "AIzaSyC9Hou8cKrUZ00pjrbog_ccjwEZq8wJQpI",
+  authDomain: "ludo-55ffb.firebaseapp.com",
+  databaseURL: "https://ludo-55ffb-default-rtdb.firebaseio.com",
+  projectId: "ludo-55ffb",
+  storageBucket: "ludo-55ffb.firebasestorage.app",
+  messagingSenderId: "626385206901",
+  appId: "1:626385206901:web:fd1b213ffe97944a8ec23c",
+  measurementId: "G-GPJ15HMSQC"
+};
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        let currentUserData = {}, allQuizzesData = {}, activeCategory = 'All', quizTimerInterval;
+        const sampleQuestions = [{ q: "What is the capital of France?", o: ["Berlin", "Madrid", "Paris", "Rome"], a: "Paris" },{ q: "Which planet is known as the Red Planet?", o: ["Earth", "Mars", "Jupiter", "Venus"], a: "Mars" },{ q: "What is 2 + 2 * 2?", o: ["8", "6", "4", "10"], a: "6" }];
+
+        function updateAllTimers() {
+            document.querySelectorAll('.timer-display').forEach(el => {
+                const endTime = parseInt(el.dataset.endTime, 10);
+                if (isNaN(endTime)) return;
+                const timeLeft = endTime - Date.now();
+                if (timeLeft <= 0) { el.textContent = "Ended"; return; }
+                const hours = Math.floor(timeLeft / 3600000);
+                const minutes = Math.floor((timeLeft % 3600000) / 60000);
+                const seconds = Math.floor((timeLeft % 60000) / 1000);
+                el.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            onAuthStateChanged(auth, user => { if (user) loadAllData(user); else signInAnonymously(auth); });
+            document.body.addEventListener('click', handleClicks);
+            setInterval(updateAllTimers, 1000);
+        });
+
+        function loadAllData(user) {
+            loadUserData(user); loadBanners(); loadQuizzesAndCache(); loadLeaderboard();
+        }
+        
+        function loadUserData(user) {
+            onValue(ref(db, 'users/' + user.uid), (snapshot) => {
+                if (!snapshot.exists()) set(ref(db, 'users/' + user.uid), { displayName: 'User', balance: 1000, quizzesPlayed: 0, lastCheckIn: 0 });
+                currentUserData = snapshot.val() || {};
+                updateUIWithUserData();
+                checkDailyReward();
+            });
+        }
+        
+        function updateUIWithUserData() {
+            document.getElementById('profile-initial').textContent = (currentUserData.displayName || 'U').charAt(0).toUpperCase();
+            document.getElementById('profile-name').textContent = `Hi ${currentUserData.displayName || 'User'}`;
+            const activePageId = document.querySelector('.page-section.active')?.id;
+            if (activePageId) {
+                const pageRenderers = {
+                    'home-page': renderHomePageQuizzes, 'my-quizzes-page': renderMyQuizzesPage,
+                    'profile-page': renderProfilePage, 'wallet-page': renderWalletPage
+                };
+                if (pageRenderers[activePageId]) pageRenderers[activePageId]();
+            }
+        }
+
+        function loadQuizzesAndCache() {
+            onValue(ref(db, 'quizzes'), (snapshot) => {
+                allQuizzesData = snapshot.val() || {};
+                renderHomePageQuizzes();
+                if(document.getElementById('my-quizzes-page').classList.contains('active')) renderMyQuizzesPage();
+            });
+        }
+
+        function loadBanners() { onValue(ref(db,'banners'),s=>{const a=document.getElementById("banner-inner");a.innerHTML="";s.exists()&&s.forEach(t=>{const n=t.val();a.innerHTML+=`<div class="carousel-item active"><img src="${n.imageUrl}" class="d-block w-100"></div>`})}); }
+        
+        function loadLeaderboard() {
+            onValue(ref(db,'leaderboard'), s => {
+                const a = document.getElementById("leaderboard-list");
+                a.innerHTML = "";
+                if (s.exists()) {
+                    let rank = 1;
+                    const leaderboardData = [];
+                    s.forEach(childSnapshot => {
+                        leaderboardData.push(childSnapshot.val());
+                    });
+                    
+                    leaderboardData.sort((x, y) => (y.prize || 0) - (x.prize || 0));
+
+                    leaderboardData.forEach(n => {
+                        let rankClass = '';
+                        if (rank === 1) rankClass = 'gold';
+                        else if (rank === 2) rankClass = 'silver';
+                        else if (rank === 3) rankClass = 'bronze';
+                        
+                        a.innerHTML += `<div class="leaderboard-entry">
+                                            <div class="rank ${rankClass}">${rank}</div>
+                                            <div class="leader-icon">${(n.name || 'U').charAt(0).toUpperCase()}</div>
+                                            <div class="leader-info">
+                                                <div class="leader-name">${n.name || 'Anonymous'}</div>
+                                                <div class="leader-prize"><i class="fas fa-rupee-sign"></i> ${n.prize || 0}</div>
+                                            </div>
+                                        </div>`;
+                        rank++;
+                    });
+                } else {
+                    a.innerHTML = '<p class="empty-state">Leaderboard is empty.</p>';
+                }
+            }); 
+        }
+
+        function renderHomePageQuizzes() {
+            const listEl = document.getElementById('quiz-list'); listEl.innerHTML = '';
+            const filteredQuizzes = Object.entries(allQuizzesData).filter(([quizId, quiz]) => !(currentUserData.joinedQuizzes && currentUserData.joinedQuizzes[quizId]));
+            if (filteredQuizzes.length > 0) filteredQuizzes.forEach(([quizId, quizData]) => { listEl.innerHTML += createQuizCardHTML(quizId, quizData); });
+            else listEl.innerHTML = '<p class="empty-state">No available quizzes found.</p>';
+        }
+        
+        function renderMyQuizzesPage() {
+            const listEl = document.getElementById('my-quizzes-list'); listEl.innerHTML = '';
+            const joinedIds = currentUserData.joinedQuizzes ? Object.keys(currentUserData.joinedQuizzes) : [];
+            if (joinedIds.length > 0) joinedIds.forEach(quizId => { if (allQuizzesData[quizId]) listEl.innerHTML += createQuizCardHTML(quizId, allQuizzesData[quizId]); });
+            else listEl.innerHTML = '<p class="empty-state">You haven\'t joined any quizzes yet.</p>';
+        }
+        
+        function renderWalletPage() {
+            document.getElementById('wallet-content').innerHTML = `<div class="wallet-card"><p>Total Balance</p><h2><i class="fas fa-rupee-sign" style="font-size: 1.8rem;"></i> ${currentUserData.balance || 0}</h2><div class="wallet-summary"><div class="summary-item">₹0<span>Deposited</span></div><div class="summary-item">₹0<span>Winnings</span></div><div class="summary-item">₹0<span>Bonus</span></div></div></div><div class="wallet-actions"><div class="wallet-btn" id="add-money-btn"><i class="fas fa-plus-circle"></i> Add</div><div class="wallet-btn withdraw" id="withdraw-money-btn"><i class="fas fa-arrow-circle-down"></i> Withdraw</div></div><h5 class="profile-section-title" style="margin-top:2rem; color:white;">Recent Transactions</h5><div id="recent-transactions"></div>`;
+            const txContainer = document.getElementById('recent-transactions'); txContainer.innerHTML = '';
+            const transactions = currentUserData.transactions;
+            if (transactions && Object.keys(transactions).length > 0) {
+                const sortedTxs = Object.values(transactions).sort((a,b) => b.timestamp - a.timestamp);
+                sortedTxs.forEach(tx => { const isPositive = tx.amount > 0; txContainer.innerHTML += `<div class="transaction-item"><div><h6>${tx.description}</h6><small>${new Date(tx.timestamp).toLocaleString()}</small></div><span>${isPositive ? '+' : ''}${tx.amount}</span></div>`; });
+            } else { txContainer.innerHTML = '<p class="empty-state">No transactions yet.</p>'; }
+        }
+
+        function renderProfilePage() {
+            document.getElementById('profile-content').innerHTML = `<div class="profile-page-header"><div class="icon">${(currentUserData.displayName || 'U').charAt(0)}</div><h4>${currentUserData.displayName || 'User'}</h4></div><ul class="profile-links"><li><a href="#" id="edit-profile-from-page"><i class="fas fa-user-edit"></i> Edit Profile <i class="fas fa-chevron-right chevron"></i></a></li><li><a><i class="fas fa-history"></i> Quizzes Played <span class="value">${currentUserData.quizzesPlayed || 0}</span></a></li><li><a href="#"><i class="fas fa-shield-alt"></i> Privacy Policy <i class="fas fa-chevron-right chevron"></i></a></li><li><a href="#"><i class="fas fa-headset"></i> Contact Us <i class="fas fa-chevron-right chevron"></i></a></li><li><a href="#"><i class="fas fa-undo-alt"></i> Refund Policy <i class="fas fa-chevron-right chevron"></i></a></li><li><a href="#"><i class="fas fa-ban"></i> Cancellation Policy <i class="fas fa-chevron-right chevron"></i></a></li><li><a href="#"><i class="fab fa-telegram-plane"></i> Join Telegram <i class="fas fa-chevron-right chevron"></i></a></li></ul>`;
+        }
+
+        function handleClicks(e) {
+            const navItem = e.target.closest('.nav-item'); if(navItem) { switchPage(navItem.dataset.target); return; }
+            const entryButton = e.target.closest('.entry-button.entry'); if(entryButton) { handleJoinQuiz(entryButton.dataset.quizId, parseInt(entryButton.dataset.entryFee)); return; }
+            const playButton = e.target.closest('.entry-button.play-now'); if(playButton) { startQuiz(playButton.dataset.quizId); return; }
+            const claimBtn = e.target.closest('.entry-button.claim'); if (claimBtn) { claimQuizPrize(claimBtn.dataset.quizId, parseInt(claimBtn.dataset.prize)); return; }
+            if(e.target.closest('#edit-profile-from-page')) { openEditProfileModal(); return; }
+            if(e.target.closest('#daily-reward-btn')) { claimDailyReward(); return; }
+            if(e.target.closest('#add-money-btn')) { openAddMoneyModal(); return; }
+            if(e.target.closest('#withdraw-money-btn')) { openWithdrawModal(); return; }
+            if(e.target.id === 'modal-container' || e.target.classList.contains('modal-btn-cancel')) { closeModal(); return; }
+        }
+
+        function switchPage(targetPageId) {
+            document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+            document.getElementById(targetPageId).classList.add('active');
+            document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelector(`.bottom-nav .nav-item[data-target="${targetPageId}"]`)?.classList.add('active');
+            const handler = { 'home-page': renderHomePageQuizzes, 'my-quizzes-page': renderMyQuizzesPage, 'profile-page': renderProfilePage, 'wallet-page': renderWalletPage, 'leaderboard-page': loadLeaderboard };
+            if(handler[targetPageId]) handler[targetPageId]();
+        }
+
+        function checkDailyReward() {
+            const rewardBtn = document.getElementById('daily-reward-btn'); if(!rewardBtn) return;
+            const today = new Date().setHours(0,0,0,0); const lastCheckIn = new Date(currentUserData.lastCheckIn || 0).setHours(0,0,0,0);
+            rewardBtn.style.display = (today > lastCheckIn) ? 'block' : 'none';
+        }
+        function claimDailyReward() {
+            const updates = {}; updates[`users/${auth.currentUser.uid}/balance`] = (currentUserData.balance || 0) + 50;
+            updates[`users/${auth.currentUser.uid}/lastCheckIn`] = Date.now();
+            update(ref(db, '/'), updates).then(() => showToast(`You received ₹50!`));
+        }
+        function claimQuizPrize(quizId, prizeAmount) {
+            const updates = {}; updates[`users/${auth.currentUser.uid}/balance`] = (currentUserData.balance || 0) + prizeAmount;
+            updates[`users/${auth.currentUser.uid}/joinedQuizzes/${quizId}/claimed`] = true;
+            update(ref(db, '/'), updates).then(() => showToast(`Congratulations! You won ₹${prizeAmount}!`));
+        }
+        function handleJoinQuiz(quizId, entryFee) {
+            if ((currentUserData.balance || 0) < entryFee) { showToast("Insufficient balance!", 'error'); return; }
+            runTransaction(ref(db, `quizzes/${quizId}`), (quizData) => { if (quizData && quizData.slotsLeft > 0) { quizData.slotsLeft--; return quizData; } return; })
+            .then(({ committed }) => {
+                if (committed) {
+                    const updates = {}; updates[`users/${auth.currentUser.uid}/balance`] = (currentUserData.balance || 0) - entryFee;
+                    updates[`users/${auth.currentUser.uid}/joinedQuizzes/${quizId}`] = { joined: true, claimed: false };
+                    update(ref(db, '/'), updates).then(() => showToast(`Successfully joined quiz!`));
+                } else { showToast("Failed to join. Quiz might be full.", 'error'); }
+            });
+        }
+
+        function openModal(content) { document.getElementById('modal-content').innerHTML = content; document.getElementById('modal-container').style.display = 'flex'; }
+        function closeModal() { document.getElementById('modal-container').style.display = 'none'; }
+        function openEditProfileModal() { /* ... */ }
+        function openAddMoneyModal() { /* ... */ }
+        function openWithdrawModal() { /* ... */ }
+        
+        function createQuizCardHTML(quizId, quizData) {
+            const isEnded = Date.now() > quizData.endTime;
+            const joinedInfo = currentUserData.joinedQuizzes ? currentUserData.joinedQuizzes[quizId] : null;
+
+            let buttonHTML;
+            if (isEnded) {
+                if (joinedInfo && !joinedInfo.claimed) {
+                    buttonHTML = `<a class="entry-button claim" data-quiz-id="${quizId}" data-prize="${quizData.winnerPrize}">Claim Prize</a>`;
+                } else {
+                    const buttonText = joinedInfo && joinedInfo.claimed ? 'Claimed' : 'Ended';
+                    const buttonClass = joinedInfo && joinedInfo.claimed ? 'claimed' : 'full';
+                    buttonHTML = `<a class="entry-button ${buttonClass}" disabled>${buttonText}</a>`;
+                }
+            } else {
+                if (joinedInfo) {
+                    buttonHTML = `<a class="entry-button play-now" data-quiz-id="${quizId}">Play Now</a>`;
+                } else {
+                    buttonHTML = quizData.slotsLeft === 0 
+                        ? `<a class="entry-button full" disabled>Full</a>`
+                        : `<a class="entry-button entry" data-quiz-id="${quizId}" data-entry-fee="${quizData.entryFee}">Entry ₹${quizData.entryFee}</a>`;
+                }
+            }
+            
+            const slotsLeft = quizData.slotsLeft, totalSlots = quizData.totalSlots;
+            const progress = totalSlots > 0 ? ((totalSlots - slotsLeft) / totalSlots) * 100 : 0;
+            let progressColor = 'green'; 
+            if (progress > 85) progressColor = 'red'; 
+            else if (progress > 60) progressColor = 'yellow';
+            
+            return `<div class="quiz-card ${isEnded ? 'ended' : ''}">
+                        <img src="${quizData.image}" class="quiz-card-image">
+                        <div class="quiz-card-content">
+                            <div class="quiz-card-header">
+                                <div class="quiz-timer"><i class="far fa-clock"></i><span class="timer-display" data-end-time="${quizData.endTime}">Loading...</span></div>
+                                <div class="prize-pool"><span>Prize Pool</span><span class="rupee-symbol"> ₹</span><span class="fw-bold">${quizData.prizePool}</span></div>
+                            </div>
+                            <h6>${quizData.title}</h6>
+                            <div class="slots-progress-container">
+                                <div class="slots-progress-bar"><div class="slots-progress-bar-fill ${progressColor}" style="width: ${progress}%;"></div></div>
+                            </div>
+                            <div class="slots-info-row">
+                                <span>${slotsLeft} Slots Left</span>
+                                <span>${totalSlots} Slots</span>
+                            </div>
+                        </div>
+                        ${buttonHTML}
+                    </div>`;
+        }
+
+        function startQuiz(quizId) {
+            const quizOverlay = document.getElementById('quiz-overlay'); quizOverlay.style.display = 'flex';
+            let currentQuestionIndex = 0, score = 0, totalTime = 0;
+            function showQuestion() {
+                if (currentQuestionIndex >= sampleQuestions.length) { endQuiz(); return; }
+                const q = sampleQuestions[currentQuestionIndex]; let timeLeft = 15;
+                quizOverlay.innerHTML = `<div class="quiz-overlay-header"><h3>Q ${currentQuestionIndex + 1}/${sampleQuestions.length}</h3><div class="timer" id="question-timer">${timeLeft}s</div></div><div class="quiz-overlay-body"><div class="quiz-question">${q.q}</div><div class="quiz-options">${q.o.map(opt => `<div class="quiz-option" data-answer="${opt}">${opt}</div>`).join('')}</div></div>`;
+                quizTimerInterval = setInterval(() => { if (--timeLeft <= 0) handleAnswer(null, 15); else document.getElementById('question-timer').textContent = `${timeLeft}s`; }, 1000);
+                document.querySelectorAll('.quiz-option').forEach(option => { option.onclick = () => { handleAnswer(option.dataset.answer, 15 - timeLeft); }; });
+            }
+            function handleAnswer(selectedAnswer, timeTaken) {
+                clearInterval(quizTimerInterval);
+                if (selectedAnswer === sampleQuestions[currentQuestionIndex].a) score += 2; totalTime += timeTaken;
+                currentQuestionIndex++; showQuestion();
+            }
+            function endQuiz() {
+                quizOverlay.innerHTML = `<div class="quiz-overlay-body"><h2>Quiz Submitted!</h2><p>Your score: ${score}</p><button id="close-quiz-btn" class="entry-button play-now">Back to App</button></div>`;
+                document.getElementById('close-quiz-btn').onclick = () => { quizOverlay.style.display = 'none'; };
+                set(ref(db, `quiz_submissions/${quizId}/${auth.currentUser.uid}`), { score, totalTime, submittedAt: Date.now() });
+            }
+            showQuestion();
+        }
+
+        function showToast(message, type = 'success') {
+             const toast = document.createElement('div'); toast.className = `toast-message ${type}`; toast.textContent = message;
+             document.getElementById('toast-container').appendChild(toast);
+             setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
